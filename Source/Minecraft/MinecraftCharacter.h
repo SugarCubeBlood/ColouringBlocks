@@ -56,6 +56,7 @@ public:
 
 protected:
 	virtual void BeginPlay();
+	void TraceForward();
 
 public:
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */

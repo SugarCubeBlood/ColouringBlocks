@@ -11,6 +11,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "MotionControllerComponent.h"
 #include "XRMotionControllerBase.h" // for FXRMotionControllerBase::RightHandSourceId
+#include <DrawDebugHelpers.h>
 
 DEFINE_LOG_CATEGORY_STATIC(LogFPChar, Warning, All);
 
@@ -105,6 +106,32 @@ void AMinecraftCharacter::BeginPlay()
 	}
 }
 
+void AMinecraftCharacter::TraceForward()
+{
+	FVector Location;
+	FRotator Rotation;
+	FHitResult HitResult;
+
+	GetController()->GetPlayerViewPoint(Location, Rotation);
+
+	FVector StartPoint = Location;
+	FVector EndPoint = StartPoint + (Rotation.Vector() * 1200);
+
+	DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Cyan, false, 2.0f);
+
+	FCollisionQueryParams TraceParams;
+
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult,StartPoint, EndPoint, ECC_Visibility, TraceParams);
+
+	if (bHit)
+	{
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, FString::Printf(TEXT("You have hit %s"), *HitResult.GetActor()->GetName()));
+
+		DrawDebugBox(GetWorld(), HitResult.ImpactPoint, FVector(5, 5, 5), FColor::Cyan, false, 2.0f);
+	}
+
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Input
 
@@ -141,6 +168,8 @@ void AMinecraftCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 void AMinecraftCharacter::OnFire()
 {
 	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Emerald, TEXT("PEW PEW"));
+
+	TraceForward();
 }
 
 void AMinecraftCharacter::OnResetVR()
