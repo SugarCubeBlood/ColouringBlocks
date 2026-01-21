@@ -6,12 +6,16 @@
 #include "GameFramework/Actor.h"
 #include "Voxel.h"
 #include "Cobblestone.h"
+#include "Diamond.h"
+#include "Bedrock.h"
+#include "Dirt.h"
+#include "Grass.h"
 #include "Chunk.generated.h"
 
 //#define CHUNK_X 3
-constexpr int CHUNK_X = 4;
-constexpr int CHUNK_Y = 4;
-constexpr int CHUNK_Z = 4;
+constexpr int CHUNK_X = 1;		//Chunk size along each axis
+constexpr int CHUNK_Y = 43;
+constexpr int CHUNK_Z = 19;
 
 UCLASS()
 class MINECRAFT_API AChunk : public AActor
@@ -20,20 +24,31 @@ class MINECRAFT_API AChunk : public AActor
 	
 public:	
 	// Sets default values for this actor's properties
-	AChunk();
+
+	AChunk();					//Contructor for chunk
+
+	UPROPERTY(BlueprintReadOnly)		//Stores scale of voxels for the Chunk
+	FVector VoxelScale;
+
+	float GetVoxelMeasurement() const;		// Getter for voxel measurment
+	FVector GetVoxelScale() const;		//Getter for voxel scale
+
 
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
-	
-	int VoxelCount;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chunk");
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Mesh")		//Enables a base static mesh for voxel
+		class UStaticMeshComponent* BaseChunkMesh;
+	
+	int VoxelCount;																		//intialises voxel count for chunk to keep track of voxel amount
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Chunk");					//Sets up base voxel measurement for chunk and to allow scable chunk sizes inside unreal
 	float BaseVoxelMeasurement = 1.f;
 
-	AVoxel* chunk[CHUNK_X][CHUNK_Y][CHUNK_Z];
+	AVoxel* chunk[CHUNK_X][CHUNK_Y][CHUNK_Z];											//3D arracy for chunk
 
-	FVector SpawnLoc;
+	FVector SpawnLoc;																	//Spawn Parameters for voxels when making chunk
 	FRotator SpawnRot;
 	FActorSpawnParameters SpawnParams;
 
@@ -42,3 +57,4 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 };
+ 

@@ -4,7 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Interaction_Interface.h"
+#include "Voxel.h"
+#include "Chunk.h"
+#include "Inventory_Component.h"
 #include "MinecraftCharacter.generated.h"
+
 
 class UInputComponent;
 class USkeletalMeshComponent;
@@ -15,7 +20,7 @@ class UAnimMontage;
 class USoundBase;
 
 UCLASS(config=Game)
-class AMinecraftCharacter : public ACharacter
+class AMinecraftCharacter : public ACharacter, public IInteraction_Interface
 {
 	GENERATED_BODY()
 
@@ -52,11 +57,43 @@ class AMinecraftCharacter : public ACharacter
 	UMotionControllerComponent* L_MotionController;
 
 public:
-	AMinecraftCharacter();
+	AMinecraftCharacter();			//Constructor for character
+
+	UFUNCTION(BlueprintCallable)	//Getter for current XP
+	int GetCurrentXP();
+
+	UFUNCTION(BlueprintCallable)	//Getter for current level
+	int GetCurrentLevel();
+
+	UFUNCTION(BlueprintCallable)	//Getter for current xp cap
+	int GetCurrentXPCap();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Voxels") // The voxel Blueprint/Class we want to spawn when placing a block
+	TSubclassOf<class AVoxel> VoxelClass;
+
+
+private:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))		//Charcter inventory component
+	UInventory_Component* Inventory;
 
 protected:
 	virtual void BeginPlay();
-	void TraceForward();
+	void TraceForward();		//Trace for mining voxels/interaction
+	void TraceForwardRight();	//Trace for placing voxels/interaction
+	virtual int Interact() override;	//Interaction interface overide for when character reacts with something
+
+	//AVoxel* TargetVoxel;		//No longer needed
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)		//Current XP value
+	int CurrentXP = 0;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)		//Current Level value
+	int CurrentLevel = 1;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)		//	XP required to reach next level
+	int CurrentXPCap = 10;
+
+	class USkeletalMesh* PickaxeMesh;
 
 public:
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
@@ -87,10 +124,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 	uint8 bUsingMotionControllers : 1;
 
+	UFUNCTION(BlueprintCallable)		//Gets plyers XP.
+		int GetPlayerXP();
+
+		void CheckXP();		//Used to check XP cap and starts l;evel up.
+
 protected:
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)				//Stores current voxel type player wishes to place down
+	EVoxelType SelectedVoxelType = EVoxelType::BASE_VOXEL;
+
+	void ScrollVoxelSelection(int Direction);			//Scrolls through voxels from invetory, used for placement of voxels
+
+	void ScrollUp();
+	void ScrollDown();
+
 	
-	/** Fires a projectile. */
-	void OnFire();
+	void OnFire(); //Uses traceforward to destory exisiting voxels
+
+
+	void OnFireRight(); // uses a traceforward to place down voxels from inventory
 
 	/** Resets HMD orientation and position in VR. */
 	void OnResetVR();

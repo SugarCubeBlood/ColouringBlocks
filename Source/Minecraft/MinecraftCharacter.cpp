@@ -47,7 +47,7 @@ AMinecraftCharacter::AMinecraftCharacter()
 	FP_Gun->SetOnlyOwnerSee(false);			// otherwise won't be visible in the multiplayer
 	FP_Gun->bCastDynamicShadow = false;
 	FP_Gun->CastShadow = false;
-	// FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
+	FP_Gun->SetupAttachment(Mesh1P, TEXT("GripPoint"));
 	FP_Gun->SetupAttachment(RootComponent);
 
 	FP_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("MuzzleLocation"));
@@ -60,29 +60,63 @@ AMinecraftCharacter::AMinecraftCharacter()
 	// Note: The ProjectileClass and the skeletal mesh/anim blueprints for Mesh1P, FP_Gun, and VR_Gun 
 	// are set in the derived blueprint asset named MyCharacter to avoid direct content references in C++.
 
-	// Create VR Controllers.
-	R_MotionController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("R_MotionController"));
-	R_MotionController->MotionSource = FXRMotionControllerBase::RightHandSourceId;
-	R_MotionController->SetupAttachment(RootComponent);
-	L_MotionController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("L_MotionController"));
-	L_MotionController->SetupAttachment(RootComponent);
+	//// Create VR Controllers.
+	//R_MotionController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("R_MotionController"));
+	//R_MotionController->MotionSource = FXRMotionControllerBase::RightHandSourceId;
+	//R_MotionController->SetupAttachment(RootComponent);
+	//L_MotionController = CreateDefaultSubobject<UMotionControllerComponent>(TEXT("L_MotionController"));
+	//L_MotionController->SetupAttachment(RootComponent);
 
-	// Create a gun and attach it to the right-hand VR controller.
-	// Create a gun mesh component
-	VR_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("VR_Gun"));
-	VR_Gun->SetOnlyOwnerSee(false);			// otherwise won't be visible in the multiplayer
-	VR_Gun->bCastDynamicShadow = false;
-	VR_Gun->CastShadow = false;
-	VR_Gun->SetupAttachment(R_MotionController);
-	VR_Gun->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+	//// Create a gun and attach it to the right-hand VR controller.
+	//// Create a gun mesh component
+	//VR_Gun = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("VR_Gun"));
+	//VR_Gun->SetOnlyOwnerSee(false);			// otherwise won't be visible in the multiplayer
+	//VR_Gun->bCastDynamicShadow = false;
+	//VR_Gun->CastShadow = false;
+	//VR_Gun->SetupAttachment(R_MotionController);
+	//VR_Gun->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 
-	VR_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("VR_MuzzleLocation"));
-	VR_MuzzleLocation->SetupAttachment(VR_Gun);
-	VR_MuzzleLocation->SetRelativeLocation(FVector(0.000004, 53.999992, 10.000000));
-	VR_MuzzleLocation->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));		// Counteract the rotation of the VR gun model.
+	//VR_MuzzleLocation = CreateDefaultSubobject<USceneComponent>(TEXT("VR_MuzzleLocation"));
+	//VR_MuzzleLocation->SetupAttachment(VR_Gun);
+	//VR_MuzzleLocation->SetRelativeLocation(FVector(0.000004, 53.999992, 10.000000));
+	//VR_MuzzleLocation->SetRelativeRotation(FRotator(0.0f, 90.0f, 0.0f));		// Counteract the rotation of the VR gun model.
 
 	// Uncomment the following line to turn motion controllers on by default:
 	//bUsingMotionControllers = true;
+
+	Inventory = CreateDefaultSubobject<UInventory_Component>(TEXT("Inventory"));		//Inventory component
+
+	CurrentLevel = 1;		//Initialise Current level
+	CurrentXP = 0;			//Initialise Current XP
+	CurrentXPCap = CurrentLevel * CurrentLevel + 10;			//Initialise Current xp cap
+	//CheckXP();		//No longer needed
+
+	SelectedVoxelType = EVoxelType::NONE;		//Sets default to non for selected voxel type
+
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh>Pickaxe(TEXT("SkeletalMesh'/Game/FPWeapon/Mesh/Pickaxe.Pickaxe'"));			//Looks for valid material
+
+	if (Pickaxe.Succeeded())																					//Sets the material if valid, gives an error if not.
+	{
+		PickaxeMesh = Pickaxe.Object;
+	}
+
+	FP_Gun->SetSkeletalMesh(PickaxeMesh);
+
+}
+
+int AMinecraftCharacter::GetCurrentXP()			//XP and player level Getters
+{
+	return CurrentXP;
+}
+
+int AMinecraftCharacter::GetCurrentLevel()
+{
+	return CurrentLevel;
+}
+
+int AMinecraftCharacter::GetCurrentXPCap()
+{
+	return CurrentXPCap;
 }
 
 void AMinecraftCharacter::BeginPlay()
@@ -92,18 +126,28 @@ void AMinecraftCharacter::BeginPlay()
 
 	//Attach gun mesh component to Skeleton, doing it here because the skeleton is not yet created in the constructor
 	FP_Gun->AttachToComponent(Mesh1P, FAttachmentTransformRules(EAttachmentRule::SnapToTarget, true), TEXT("GripPoint"));
+	FP_Gun->SetRelativeScale3D(FVector(0.02, 0.03, 0.03));
+	FP_Gun->SetRelativeLocation(FVector(3.50934, 18.557436, -4.711196));
+	FP_Gun->SetRelativeRotation(FRotator(0.984527, 3.511641, 69.215355));
 
-	// Show or hide the two versions of the gun based on whether or not we're using motion controllers.
-	if (bUsingMotionControllers)
-	{
-		VR_Gun->SetHiddenInGame(false, true);
-		Mesh1P->SetHiddenInGame(true, true);
-	}
-	else
-	{
-		VR_Gun->SetHiddenInGame(true, true);
-		Mesh1P->SetHiddenInGame(false, true);
-	}
+
+
+	//// Show or hide the two versions of the gun based on whether or not we're using motion controllers.
+	//if (bUsingMotionControllers)
+	//{
+	//	VR_Gun->SetHiddenInGame(false, true);
+	//	Mesh1P->SetHiddenInGame(true, true);
+	//}
+	//else
+	//{
+	//	VR_Gun->SetHiddenInGame(true, true);
+	//	Mesh1P->SetHiddenInGame(false, true);
+	//}
+
+	UE_LOG(LogTemp, Warning, TEXT("Character XP at BeginPlay = %d"), CurrentXP);
+
+
+	CheckXP();		//Ensures XP and Level values are valid when starting game
 }
 
 void AMinecraftCharacter::TraceForward()
@@ -112,12 +156,12 @@ void AMinecraftCharacter::TraceForward()
 	FRotator Rotation;
 	FHitResult HitResult;
 
-	GetController()->GetPlayerViewPoint(Location, Rotation);
+	GetController()->GetPlayerViewPoint(Location, Rotation);		//Gets player camera positions and direction
 
 	FVector StartPoint = Location;
 	FVector EndPoint = StartPoint + (Rotation.Vector() * 1200);
 
-	DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Cyan, false, 2.0f);
+	DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Cyan, false, 2.0f);		//Draws debug line so trace is visable
 
 	FCollisionQueryParams TraceParams;
 
@@ -125,11 +169,113 @@ void AMinecraftCharacter::TraceForward()
 
 	if (bHit)
 	{
-		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, FString::Printf(TEXT("You have hit %s"), *HitResult.GetActor()->GetName()));
+		//if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, FString::Printf(TEXT("You have hit %s"), *HitResult.GetActor()->GetName()));		//States what was hit
 
-		DrawDebugBox(GetWorld(), HitResult.ImpactPoint, FVector(5, 5, 5), FColor::Cyan, false, 2.0f);
+		DrawDebugBox(GetWorld(), HitResult.ImpactPoint, FVector(5, 5, 5), FColor::Cyan, false, 2.0f);		//Draws box at impact point
+
+		//TargetVoxel = Cast<AVoxel>(HitResult.GetActor());		//No longer needed
+
+		AVoxel* HitVoxel = Cast<AVoxel>(HitResult.GetActor());		//Checks that the actor hit was a voxel.
+		if (HitVoxel)
+		{
+			CurrentXP += HitVoxel->Interact();	//Gives XP for hitting voxel
+			CheckXP();		//Checks XP and runs level up if needed
+
+			if (Inventory)		//Adds the voxel to the inventory
+			{
+				Inventory->AddVoxel(HitVoxel->VoxelType, 1);
+
+				/*if (GEngine)
+				{
+					GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green,FString::Printf(TEXT("Collected 1 x %s"),*UEnum::GetValueAsString(HitVoxel->VoxelType)));
+				}*/
+			}
+
+			return; // Stop here so nothing else unnecessary runs
+		}
+
+
+		if (HitResult.GetActor()->GetClass()->ImplementsInterface(UInteraction_Interface::StaticClass()))		//If actor hit isnt a voxel. Runs the base game interaction. Which is nothing currently.
+		{
+			CurrentXP += Cast<IInteraction_Interface>(HitResult.GetActor())->Interact();
+			CheckXP();
+		}
 	}
 
+}
+
+void AMinecraftCharacter::TraceForwardRight()
+{
+	FVector Location;
+	FRotator Rotation;
+	FHitResult HitResult;
+
+	GetController()->GetPlayerViewPoint(Location, Rotation);		//Gets player camera positions and direction
+
+	FVector StartPoint = Location;
+	FVector EndPoint = StartPoint + (Rotation.Vector() * 1200);
+
+	DrawDebugLine(GetWorld(), StartPoint, EndPoint, FColor::Red, false, 2.0f);		//Draws debug line so trace is visable
+
+	FCollisionQueryParams TraceParams;
+
+	bool bHit = GetWorld()->LineTraceSingleByChannel(HitResult, StartPoint, EndPoint, ECC_Visibility, TraceParams);
+
+	AVoxel* Voxel = Cast<AVoxel>(HitResult.GetActor());		//Checks if the trace has hit comething and it is a voxel. If not it returns.
+	if (!bHit || !Voxel)
+	{
+		return;
+	}
+
+	AChunk* Chunk = Voxel->GetOwningChunk();		//Getter for the chunk the voxel hit belongs to, if its not a chunk returns.
+	if (!Chunk)
+	{
+		return;
+	}
+
+	// placement logic to place down blocks.
+
+	if (SelectedVoxelType == EVoxelType::NONE)
+	{
+		return;
+	}
+
+	if (!Inventory->HasVoxel(SelectedVoxelType))
+	{
+		return;
+	}
+
+	const float BlockSize = 100.0f * Chunk->GetVoxelMeasurement();		//Gets the size of the voxel from the chunk
+
+	FVector BaseLocation = Voxel->GetActorLocation();			// Gets the voxels aligned location instead of the hit location
+	FVector PlaceLocation = BaseLocation + (HitResult.ImpactNormal * BlockSize);
+
+	PlaceLocation.X = FMath::RoundToFloat(PlaceLocation.X / BlockSize) * BlockSize;		//Places voxels on the grid so its aligned with exisiting voxels.
+	PlaceLocation.Y = FMath::RoundToFloat(PlaceLocation.Y / BlockSize) * BlockSize;
+	PlaceLocation.Z = FMath::RoundToFloat(PlaceLocation.Z / BlockSize) * BlockSize;
+
+	TSubclassOf<AVoxel> ClassToSpawn = Inventory->GetVoxelClass(SelectedVoxelType);		//Gets the voxel type from the invetory based on the currently selected voxel type.
+	if (!ClassToSpawn)
+	{
+		return;
+	}
+
+	AVoxel* NewVoxel = GetWorld()->SpawnActor<AVoxel>(ClassToSpawn, PlaceLocation, FRotator::ZeroRotator);		//Spawns the voxel thats is being placed. Placing aligned with other voxels from above calculation.
+
+	if (NewVoxel)
+	{
+		NewVoxel->SetOwningChunk(Chunk);		//Sets the ownership of the new voxel to the chunk.
+		NewVoxel->SetActorScale3D(Chunk->GetVoxelScale());		//Sets the scale of the new voxel based on the chunks scale.
+	}
+
+	Inventory->RemoveVoxel(SelectedVoxelType, 1);	//removes the voxel from the inventory
+
+}
+
+int AMinecraftCharacter::Interact()
+{
+	//if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Magenta, TEXT("??"));
+	return 0;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -137,6 +283,12 @@ void AMinecraftCharacter::TraceForward()
 
 void AMinecraftCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
+
+	//Sets up input for scrolling through voxels
+	PlayerInputComponent->BindAction("ScrollUp", IE_Pressed, this, &AMinecraftCharacter::ScrollUp);
+	PlayerInputComponent->BindAction("ScrollDown", IE_Pressed, this, &AMinecraftCharacter::ScrollDown);
+
+
 	// set up gameplay key bindings
 	check(PlayerInputComponent);
 
@@ -146,6 +298,7 @@ void AMinecraftCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 
 	// Bind fire event
 	PlayerInputComponent->BindAction("Fire", IE_Pressed, this, &AMinecraftCharacter::OnFire);
+	PlayerInputComponent->BindAction("Fire Right", IE_Pressed, this, &AMinecraftCharacter::OnFireRight);
 
 	// Enable touchscreen input
 	EnableTouchscreenMovement(PlayerInputComponent);
@@ -165,11 +318,82 @@ void AMinecraftCharacter::SetupPlayerInputComponent(class UInputComponent* Playe
 	PlayerInputComponent->BindAxis("LookUpRate", this, &AMinecraftCharacter::LookUpAtRate);
 }
 
+int AMinecraftCharacter::GetPlayerXP()		//XP Getter, returns current xp value
+{
+	return CurrentXP;
+}
+
+void AMinecraftCharacter::CheckXP()			//Checks current XP against Current XP cap, If higher than cap, levels up character and sets the new level xp cap higher. Scales over time.
+{
+	while (CurrentXP >= CurrentXPCap)
+	{
+		CurrentLevel++;
+
+		CurrentXP = CurrentXP - CurrentXPCap;
+
+		CurrentXPCap = CurrentLevel * CurrentLevel + 10;
+	}
+}
+
+void AMinecraftCharacter::ScrollVoxelSelection(int Direction)
+{
+	if (Direction == 0 || !Inventory)		//No input or no inventory returns nothing
+	{
+		return;
+	}
+
+	TArray<EVoxelType> SelectableTypes;			//Makes array of selectable voxel types
+
+	for (const auto& Pair : Inventory->Inventory)		// Adds voxel types that the player  more than 0 of in inventory to the selectable types.
+	{
+		if (Pair.Value > 0)
+		{
+			SelectableTypes.Add(Pair.Key);
+		}
+	}
+
+	if (SelectableTypes.Num() == 0)		//If inventory is empty no voxel can be selected and sets the default selection to none
+	{
+		SelectedVoxelType = EVoxelType::NONE;
+		return;
+	}
+
+	int Index = SelectableTypes.Find(SelectedVoxelType);		//Creates an index  of the items in the selected voxel type array
+
+	if (Index == INDEX_NONE)		//Resets the index if the voxel type cant be found.
+	{
+		Index = 0;
+	}
+
+	Index += Direction;		// Apply scroll direction (+1 = next, -1 = previous)
+
+	if (Index >= SelectableTypes.Num()) Index = 0;		//Wrap around for scrolling, if index goes pass the number of types available it sets it back to the first one
+	if (Index < 0) Index = SelectableTypes.Num() - 1;		//If scoll is less that zero, Wraps back round to the last item in the index.
+
+	SelectedVoxelType = SelectableTypes[Index];		// Update selected voxel type
+}
+
+void AMinecraftCharacter::ScrollUp()
+{
+	ScrollVoxelSelection(1.0f);			//Scroll forward through voxel types
+}
+
+void AMinecraftCharacter::ScrollDown()
+{
+	ScrollVoxelSelection(-1.0f);		//Scoll back through voxel types.
+}
+
 void AMinecraftCharacter::OnFire()
 {
-	if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Emerald, TEXT("PEW PEW"));
+	// if (GEngine) GEngine->AddOnScreenDebugMessage(1, 3.f, FColor::Emerald, FString::Printf(TEXT("My XP is: %d"), CurrentXP));
 
-	TraceForward();
+	TraceForward();		//Left click used for mining voxels
+	//Interact();
+}
+
+void AMinecraftCharacter::OnFireRight()
+{
+	TraceForwardRight();		//Right click used for placing voxels.
 }
 
 void AMinecraftCharacter::OnResetVR()

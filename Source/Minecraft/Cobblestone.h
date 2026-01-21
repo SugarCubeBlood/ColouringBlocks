@@ -18,5 +18,5 @@ private:
 
 public:
 
-	ACobblestone();
+	ACobblestone();							//construtor for Cobblestone voxel.
 };
